@@ -1,0 +1,27 @@
+language: php
+matrix:
+  fast_finish: true
+  include:
+  - php: nightly
+    env:
+        - PHPUNIT=true
+        - DB_CONNECTION=mysql
+  - php: 7.1
+    env:
+        - PHPUNIT=true
+        - DB_CONNECTION=mysql
+  - php: 7.0
+    env:
+        - PHPUNIT=true
+        - DB_CONNECTION=mysql
+  - php: 5.6
+    env: PHPUNIT=false
+before_install:
+  - mysql -e 'CREATE DATABASE travis;'
+install:
+  - if [ $PHPUNIT = true ]; then composer install; else composer install --no-dev; fi
+script:
+  - cd src/ && ../tests/lint.bash && cd -
+  - if [ $PHPUNIT = true ]; then ./vendor/bin/phpunit --debug --coverage-clover=coverage.xml; fi
+after_success:
+  - if [ $PHPUNIT = true ]; then bash <(curl -s https://codecov.io/bash); fi
