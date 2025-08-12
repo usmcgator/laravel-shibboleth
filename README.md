@@ -1,7 +1,7 @@
 Laravel Shibboleth Service Provider
 ===================================
 
-This package provides an easy way to implement Shibboleth Authentication for 6, 7 and 8. It can either use an existing Shibboleth SP (like apache mod_shib) or it can serve as its own Shib SP. 
+This package provides an easy way to implement Shibboleth Authentication for 10, 11, and 12. It can either use an existing Shibboleth SP (like apache mod_shib) or it can serve as its own Shib SP. 
 
 ## Installation ##
 
@@ -10,7 +10,7 @@ Because this is a fork, you'll need to add the fork to your composer.json file. 
 ```json
     {
       "type": "vcs",
-      "url": "https://github.com/uf-phhp-it/laravel-shibboleth-phhp"
+      "url": "https://github.com/usmcgator/laravel-shibboleth"
     },
 ```
 
@@ -44,10 +44,9 @@ your `config/auth.php` file.
 
 ## Configuration ##
 
-Add the following to your .env
+The config/shibboleth.php uses env to set many variables, check the defaults and set values as appropriate. Add the following to your .env
 ```env
-SHIB_AUTH_FIELD=email
-SHIB_EMULATE_LOGIN_VIEW="IdpLogin" # optional, defaults to IdpLogin
+SHIB_AUTH_FIELD=eppn
 ```
 
 The published `shibboleth.php` config file allows for a wide range of customization. If you're leveraging the local-sp functionality, you'll need to provide a variety of information about your Shibboleth IdP. If you're leveraging the Apache shibboleth SP, you should only need to verify the Shibboleth attributes that you'll be using. 
