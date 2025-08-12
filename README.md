@@ -18,7 +18,7 @@ Because this is a fork, you'll need to add the fork to your composer.json file. 
 
 Use [composer][1] to require the latest release into your project:
 
-    composer require razorbacks/laravel-shibboleth:dev-main
+    composer require razorbacks/laravel-shibboleth:^1.0
 
 Publish the default configuration file and entitlement migrations:
 
@@ -40,8 +40,6 @@ your `config/auth.php` file.
     ],
 ],
 ```
-
-
 
 ## Configuration ##
 
