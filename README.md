@@ -1,5 +1,6 @@
 Laravel Shibboleth Service Provider
 ===================================
+Forked from https://github.com/UMN-LATIS/laravel-shibboleth
 
 This package provides an easy way to implement Shibboleth Authentication for 10, 11, and 12. It can either use an existing Shibboleth SP (like apache mod_shib) or it can serve as its own Shib SP. 
 
