@@ -45,11 +45,6 @@ your `config/auth.php` file.
 
 ## Configuration ##
 
-The config/shibboleth.php uses env to set many variables, check the defaults and set values as appropriate. Add the following to your .env
-```env
-SHIB_AUTH_FIELD=eppn
-```
-
 The published `shibboleth.php` config file allows for a wide range of customization, check the defaults and set values as appropriate. For example, add the following to your .env
 ```env
 SHIB_AUTH_FIELD=eppn
