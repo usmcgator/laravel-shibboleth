@@ -8,16 +8,17 @@ This package provides an easy way to implement Shibboleth Authentication for 10,
 Because this is a fork, you'll need to add the fork to your composer.json file. Add this entry to your repositories array:
 
 ```json
-    {
-      "type": "vcs",
-      "url": "https://github.com/usmcgator/laravel-shibboleth"
-    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": https://github.com/usmcgator/laravel-shibboleth"
+        }
+    ],
 ```
 
 Use [composer][1] to require the latest release into your project:
 
-    composer require "razorbacks/laravel-shibboleth":"dev-umn"
-
+    composer require razorbacks/laravel-shibboleth:dev-main
 
 Publish the default configuration file and entitlement migrations:
 
@@ -49,7 +50,12 @@ The config/shibboleth.php uses env to set many variables, check the defaults and
 SHIB_AUTH_FIELD=eppn
 ```
 
-The published `shibboleth.php` config file allows for a wide range of customization. If you're leveraging the local-sp functionality, you'll need to provide a variety of information about your Shibboleth IdP. If you're leveraging the Apache shibboleth SP, you should only need to verify the Shibboleth attributes that you'll be using. 
+The published `shibboleth.php` config file allows for a wide range of customization, check the defaults and set values as appropriate. For example, add the following to your .env
+```env
+SHIB_AUTH_FIELD=eppn
+```
+
+If you're leveraging the local-sp functionality, you'll need to provide a variety of information about your Shibboleth IdP. If you're leveraging the Apache shibboleth SP, you should only need to verify the Shibboleth attributes that you'll be using. 
 
 For local development, add `SHIB_EMULATE=true` to your .env file. This will enable you to login with any of the users defined in the `emulate_idp_users` array of shibboleth.php. You may add additional users if you wish.
 
