@@ -91,37 +91,39 @@ class ShibbolethController extends Controller
         foreach (config('shibboleth.user') as $local => $server) {
             $map[$local] = $this->getServerVariable($server);
         }
-
+        // dd('local: ' . $local . ' Server: ' .$server);
         if (empty($map[config('shibboleth.authfield')])) {
             return abort(403, 'Unauthorized');
         }
 
         $userClass = config('auth.providers.users.model', 'App\User');
 
-        // Attempt to login with the email, if success, update the user model
-        // with data from the Shibboleth headers (if present)
-        if (Auth::attempt(array(config('shibboleth.authfield') => $map[config('shibboleth.authfield')]), true)) {
-            $user = $userClass::where(config('shibboleth.authfield'), '=', $map[config('shibboleth.authfield')])->first();
+        $authField = config('shibboleth.authfield');
+        $identifier = $map[$authField] ?? null;
 
-            // Update the model as necessary
-            $user->update($map);
+        if (empty($identifier)) {
+            return abort(403, 'Unauthorized because of authfield!');
         }
 
-        // Add user and send through auth.
-        elseif (config('shibboleth.add_new_users', true)) {
-            $map['password'] = 'shibboleth';
-            try {
-                $user = $userClass::create($map);
-            }
-            catch (\Illuminate\Database\QueryException $e) {
+        $userClass = config('auth.providers.users.model', \App\Models\User::class);
+
+        $user = $userClass::where($authField, $identifier)->first();
+
+        if (!$user) {
+            if (!config('shibboleth.add_new_users', true)) {
                 return abort(403, 'Unauthorized');
             }
-            Auth::attempt(array(config('shibboleth.authfield') => $map[config('shibboleth.authfield')]), true);
+            $user = new $userClass();
+            $user->{$authField} = $identifier;
         }
 
-        else {
-            return abort(403, 'Unauthorized');
+        if (config('shibboleth.emulate_idp') !== true) {
+            $user->fill($map);
+            $user->save();
         }
+
+        // Trust the IdP: no password involved
+        \Auth::login($user, true);
 
         Session::regenerate();
 
@@ -130,9 +132,6 @@ class ShibbolethController extends Controller
         return redirect()->intended($route);
     }
 
-    /**
-     * Destroy the current session and log the user out, redirect them to the main route.
-     */
     public function destroy()
     {
         Auth::logout();
@@ -181,6 +180,7 @@ class ShibbolethController extends Controller
                 Request::input('username') : '';
 
             $userAttrs = $this->idp->fetchAttrs($username);
+
             if ($userAttrs) {
                 $this->idp->markAsAuthenticated($username);
                 $this->idp->redirect("/shibboleth-authenticate");
@@ -227,11 +227,11 @@ class ShibbolethController extends Controller
                 $_SERVER[$variableName] : null;
         }
         if (config('shibboleth.sp_type') == "local_shib") {
-            if(Request::session("shibAttributes")) {
+            if (Request::session("shibAttributes")) {
                 $deserialized = unserialize(Request::session()->get("shibAttributes"));
-                if(isset($deserialized[$variableName])) {
-                    if(is_array($deserialized[$variableName])) {
-                        if(count($deserialized[$variableName])>1) {
+                if (isset($deserialized[$variableName])) {
+                    if (is_array($deserialized[$variableName])) {
+                        if (count($deserialized[$variableName]) > 1) {
                             return $deserialized[$variableName];
                         }
                         return $deserialized[$variableName][0];
@@ -250,25 +250,26 @@ class ShibbolethController extends Controller
     }
 
     // These are helpers to provide backwards compatibility with the apache only version of this library
-    private function getLoginURL() {
-        if(config('shibboleth.sp_type')) {
+    private function getLoginURL()
+    {
+        if (config('shibboleth.sp_type')) {
             return config('shibboleth.' . config('shibboleth.sp_type') . '.idp_login');
-        }
-        else {
+        } else {
             return config('shibboleth.idp_login');
         }
     }
 
-    private function getLogoutURL() {
-        if(config('shibboleth.sp_type')) {
+    private function getLogoutURL()
+    {
+        if (config('shibboleth.sp_type')) {
             return config('shibboleth.' . config('shibboleth.sp_type') . '.idp_logout');
-        }
-        else {
+        } else {
             return config('shibboleth.idp_logout');
         }
     }
 
-    private function getLocalSettings() {
+    private function getLocalSettings()
+    {
         $localSettings = config('shibboleth.local_settings');
         // check if the assertionConsumerService is a fqdn and if not, set it based on the current request host
         if (isset($localSettings['sp']['assertionConsumerService']['url'])) {
@@ -277,7 +278,7 @@ class ShibbolethController extends Controller
                 $localSettings['sp']['assertionConsumerService']['url'] = url($acsUrl);
             }
             return $localSettings;
-	    } else {
+        } else {
             return abort(500, 'Assertion Consumer Service URL is not configured.');
         }
     }
@@ -291,19 +292,22 @@ class ShibbolethController extends Controller
         return (View::exists($view)) ? view($view) : Redirect::to($view);
     }
 
-    public function localSPLogin() {
+    public function localSPLogin()
+    {
         $localSettings = $this->getLocalSettings();
         $auth = new OneLogin_Saml2_Auth($localSettings);
-        $auth->login(null,array(),false,false,false,false);
+        $auth->login(null, array(), false, false, false, false);
     }
 
-    public function localSPLogout() {
+    public function localSPLogout()
+    {
         $localSettings = $this->getLocalSettings();
         $auth = new OneLogin_Saml2_Auth($localSettings);
         $auth->logout();
     }
 
-    public function localSPACS() {
+    public function localSPACS()
+    {
         $localSettings = $this->getLocalSettings();
         $auth = new OneLogin_Saml2_Auth($localSettings);
         Utils::setProxyVars(true);
@@ -319,17 +323,13 @@ class ShibbolethController extends Controller
             return array('error' => 'Could not authenticate', 'last_error_reason' => $auth->getLastErrorReason());
         }
 
-        // foreach($auth->getAttributes() as $key=>$value) {
-        Request::session()->flash("shibAttributes",serialize(array_merge(["nameId"=>$auth->getNameId()], $auth->getAttributes())));
-        
-        // }
-        // Request::session()->flash($auth->getAttributes());
-        return Redirect::action('\\' . __CLASS__ . '@idpAuthenticate');
+        Request::session()->flash("shibAttributes", serialize(array_merge(["nameId" => $auth->getNameId()], $auth->getAttributes())));
 
-        
+        return Redirect::action('\\' . __CLASS__ . '@idpAuthenticate');
     }
-    
-    public function localSPMetadata() {
+
+    public function localSPMetadata()
+    {
         $localSettings = $this->getLocalSettings();
         $auth = new OneLogin_Saml2_Auth($localSettings);
         $settings = $auth->getSettings();
@@ -345,7 +345,5 @@ class ShibbolethController extends Controller
                 OneLogin_Saml2_Error::METADATA_SP_INVALID
             );
         }
-        
     }
-
 }

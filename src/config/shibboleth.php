@@ -19,7 +19,7 @@ return array(
     SHIB_IDP_X509_ENCRYPTION
     */
 
-    
+
     /*
     |--------------------------------------------------------------------------
     | Views / Endpoints
@@ -30,7 +30,7 @@ return array(
     |
      */
 
-     // default to using apache mod_shib
+    // default to using apache mod_shib
     'sp_type' => env('SHIB_SP_TYPE', 'apache_shib'),
     'local_shib' => [
         'idp_login'     => '/local-sp/Login',
@@ -38,14 +38,14 @@ return array(
     ],
     'apache_shib' => [
         'idp_login'     => '/Shibboleth.sso/Login',
-        'idp_logout'    => env('SHIB_LOGOUT','/Shibboleth.sso/Logout'),
+        'idp_logout'    => env('SHIB_LOGOUT', '/Shibboleth.sso/Logout'),
     ],
     // by default, we'll register the necessary routes. In multitennancy cases, you probably don't want to do this.
     "register_routes" => env('SHIB_REGISTER_ROUTES', true),
     // where should the user be redirected after a successful login
     'authenticated' => '/',
     // authfield defines the field we should use as the primary key to look up users in our database.
-    'authfield'     => env('SHIB_AUTH_FIELD', 'umndid'),
+    'authfield'     => env('SHIB_AUTH_FIELD', 'email'),
     /*
     |--------------------------------------------------------------------------
     | Emulate an IdP
@@ -101,15 +101,15 @@ return array(
     |
      */
 
-    // Note: when using local-sp, these need to be the full unmapped attributes from Shib    
+    // Note: when using local-sp, these need to be the full unmapped attributes from Shib
     'user' => [
         // fillable user model attribute => server variable
-        'email'       => env('SHIB_EMAIL_FIELD', 'eppn'),
+        'email'       => env('SHIB_EMAIL_FIELD', 'email'),
         'name'        => env('SHIB_NAME_FIELD', 'displayName'),
         'first_name'  => env('SHIB_FIRST_NAME', 'givenName'),
         'last_name'   => env('SHIB_LAST_NAME', 'sn'),
         'umndid'  => env("SHIB_DID", 'umnDID'),
-        'emplid'  => env('SHIB_EMPL_ID', 'umnEmplId'),
+        'emplid'  => env('SHIB_EMPL_ID', 'eppn'),
     ],
 
     /*
@@ -139,7 +139,7 @@ return array(
      * contactPerson
      * contactOrg
      */
-    'local_settings' => array (
+    'local_settings' => array(
         // If 'strict' is True, then the PHP Toolkit will reject unsigned
         // or unencrypted messages if it expects them to be signed or encrypted.
         // Also it will reject the messages if the SAML standard is not strictly
@@ -156,12 +156,12 @@ return array(
         'baseurl' => null,
 
         // Service Provider Data that we are deploying.
-        'sp' => array (
+        'sp' => array(
             // Identifier of the SP entity  (must be a URI)
             'entityId' => env('SHIB_ENTITY_ID', ''),
             // Specifies info about where and how the <AuthnResponse> message MUST be
             // returned to the requester, in this case our SP.
-            'assertionConsumerService' => array (
+            'assertionConsumerService' => array(
                 // URL Location where the <Response> from the IdP will be returned
                 'url' => env('SHIB_ASSERTION_CONSUMER_URL', '/local-sp/Login'),
                 // SAML protocol binding to be used when returning the <Response>
@@ -187,7 +187,7 @@ return array(
             // ),
             // Specifies info about where and how the <Logout Response> message MUST be
             // returned to the requester, in this case our SP.
-            'singleLogoutService' => array (
+            'singleLogoutService' => array(
                 // URL Location where the <Response> from the IdP will be returned
                 'url' => env('SHIB_LOGOUT_SERVICE_URL', '/local-sp/Logout'),
                 // SAML protocol binding to be used when returning the <Response>
@@ -215,11 +215,11 @@ return array(
         ),
 
         // Identity Provider Data that we want connected with our SP.
-        'idp' => array (
+        'idp' => array(
             // Identifier of the IdP entity  (must be a URI)
             'entityId' => env('SHIB_IDP_ENTITY', ''),
             // SSO endpoint info of the IdP. (Authentication Request protocol)
-            'singleSignOnService' => array (
+            'singleSignOnService' => array(
                 // URL Target of the IdP where the Authentication Request Message
                 // will be sent.
                 'url' => env('SHIB_IDP_SSO', ''),
@@ -229,12 +229,12 @@ return array(
                 'binding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect',
             ),
             // SLO endpoint info of the IdP.
-            'singleLogoutService' => array (
+            'singleLogoutService' => array(
                 // URL Location of the IdP where SLO Request will be sent.
                 'url' => env('SHIB_IDP_SLO', ''),
                 // URL location of the IdP where the SP will send the SLO Response (ResponseLocation)
                 // if not set, url for the SLO Request will be used
-                'responseUrl' => env('SHIB_IDP_SLO_RESPONSE', ''),            
+                'responseUrl' => env('SHIB_IDP_SLO_RESPONSE', ''),
                 // SAML protocol binding to be used when returning the <Response>
                 // message. OneLogin Toolkit supports the HTTP-Redirect binding
                 // only for this endpoint.
@@ -267,84 +267,84 @@ return array(
             * ignored).
             */
             'x509certMulti' => array(
-                 'signing' => array(
-                     0 => env('SHIB_IDP_X509_SIGNING', ''),
-                 ),
-                 'encryption' => array(
-                     0 => env('SHIB_IDP_X509_ENCRYPTION', ''),
-                 )
+                'signing' => array(
+                    0 => env('SHIB_IDP_X509_SIGNING', ''),
+                ),
+                'encryption' => array(
+                    0 => env('SHIB_IDP_X509_ENCRYPTION', ''),
+                )
             ),
-            ),
-            'security' => array(
+        ),
+        'security' => array(
 
-        /** signatures and encryptions offered */
+            /** signatures and encryptions offered */
 
-        // Indicates that the nameID of the <samlp:logoutRequest> sent by this SP
-        // will be encrypted.
-        'nameIdEncrypted' => false,
+            // Indicates that the nameID of the <samlp:logoutRequest> sent by this SP
+            // will be encrypted.
+            'nameIdEncrypted' => false,
 
-        // Indicates whether the <samlp:AuthnRequest> messages sent by this SP
-        // will be signed.              [The Metadata of the SP will offer this info]
-        'authnRequestsSigned' => true,
+            // Indicates whether the <samlp:AuthnRequest> messages sent by this SP
+            // will be signed.              [The Metadata of the SP will offer this info]
+            'authnRequestsSigned' => true,
 
-        // Indicates whether the <samlp:logoutRequest> messages sent by this SP
-        // will be signed.
-        'logoutRequestSigned' => false,
+            // Indicates whether the <samlp:logoutRequest> messages sent by this SP
+            // will be signed.
+            'logoutRequestSigned' => false,
 
-        // Indicates whether the <samlp:logoutResponse> messages sent by this SP
-        // will be signed.
-        'logoutResponseSigned' => false,
+            // Indicates whether the <samlp:logoutResponse> messages sent by this SP
+            // will be signed.
+            'logoutResponseSigned' => false,
 
-        /* Sign the Metadata
+            /* Sign the Metadata
          False || True (use sp certs) || array (
                                                     keyFileName => 'metadata.key',
                                                     certFileName => 'metadata.crt'
                                                 )
         */
-        'signMetadata' => true,
+            'signMetadata' => true,
 
-        'wantXMLValidation'=>false,
-        /** signatures and encryptions required **/
+            'wantXMLValidation' => false,
+            /** signatures and encryptions required **/
 
-        // Indicates a requirement for the <samlp:Response>, <samlp:LogoutRequest> and
-        // <samlp:LogoutResponse> elements received by this SP to be signed.
-        'wantMessagesSigned' => false,
+            // Indicates a requirement for the <samlp:Response>, <samlp:LogoutRequest> and
+            // <samlp:LogoutResponse> elements received by this SP to be signed.
+            'wantMessagesSigned' => false,
 
-        // Indicates a requirement for the <saml:Assertion> elements received by
-        // this SP to be signed.        [The Metadata of the SP will offer this info]
-        'wantAssertionsSigned' => false,
+            // Indicates a requirement for the <saml:Assertion> elements received by
+            // this SP to be signed.        [The Metadata of the SP will offer this info]
+            'wantAssertionsSigned' => false,
 
-        // Indicates a requirement for the NameID received by
-        // this SP to be encrypted.
-        'wantNameIdEncrypted' => false,
+            // Indicates a requirement for the NameID received by
+            // this SP to be encrypted.
+            'wantNameIdEncrypted' => false,
 
-        // Authentication context.
-        // Set to false and no AuthContext will be sent in the AuthNRequest,
-        // Set true or don't present thi parameter and you will get an AuthContext 'exact' 'urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport'
-        // Set an array with the possible auth context values: array ('urn:oasis:names:tc:SAML:2.0:ac:classes:Password', 'urn:oasis:names:tc:SAML:2.0:ac:classes:X509'),
-        'requestedAuthnContext' => false,
-    ),
-
-    // Contact information template, it is recommended to suply a technical and support contacts
-    'contactPerson' => array(
-        'technical' => array(
-            'givenName' => 'name',
-            'emailAddress' => 'no@reply.com'
+            // Authentication context.
+            // Set to false and no AuthContext will be sent in the AuthNRequest,
+            // Set true or don't present thi parameter and you will get an AuthContext 'exact' 'urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport'
+            // Set an array with the possible auth context values: array ('urn:oasis:names:tc:SAML:2.0:ac:classes:Password', 'urn:oasis:names:tc:SAML:2.0:ac:classes:X509'),
+            'requestedAuthnContext' => false,
         ),
-        'support' => array(
-            'givenName' => 'Support',
-            'emailAddress' => 'no@reply.com'
-        ),
-    ),
 
-    // Organization information template, the info in en_US lang is recomended, add more if required
-    'organization' => array(
-        'en-US' => array(
-            'name' => 'Name',
-            'displayname' => 'Display Name',
-            'url' => 'http://url'
+        // Contact information template, it is recommended to suply a technical and support contacts
+        'contactPerson' => array(
+            'technical' => array(
+                'givenName' => 'name',
+                'emailAddress' => 'no@reply.com'
+            ),
+            'support' => array(
+                'givenName' => 'Support',
+                'emailAddress' => 'no@reply.com'
+            ),
         ),
-    ),
+
+        // Organization information template, the info in en_US lang is recomended, add more if required
+        'organization' => array(
+            'en-US' => array(
+                'name' => 'Name',
+                'displayname' => 'Display Name',
+                'url' => 'http://url'
+            ),
+        ),
 
     )
 

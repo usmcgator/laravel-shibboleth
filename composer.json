@@ -1,5 +1,5 @@
 {
-  "name": "razorbacks/laravel-shibboleth",
+  "name": "usmcgator/laravel-shibboleth",
   "description": "Enable basic Shibboleth support for Laravel 12.x",
   "authors": [
     {
