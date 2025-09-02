@@ -19,7 +19,9 @@ Because this is a fork, you'll need to add the fork to your composer.json file. 
 
 Use [composer][1] to require the latest release into your project:
 
-    composer require usmcgator/laravel-shibboleth:^1.0
+    composer require usmcgator/laravel-shibboleth:dev-main
+
+Note: If you encounter issues installing the package, ensure your composer.json allows dev versions by setting "minimum-stability": "dev" and "prefer-stable": true.
 
 Publish the default configuration file and entitlement migrations:
 
@@ -28,7 +30,6 @@ Publish the default configuration file and entitlement migrations:
 You can also publish the views for the shibalike emulated IdP login:
 
     php artisan vendor:publish --provider="StudentAffairsUwm\Shibboleth\ShibalikeServiceProvider"
-
 
 Change the driver to `shibboleth` in
 your `config/auth.php` file.
