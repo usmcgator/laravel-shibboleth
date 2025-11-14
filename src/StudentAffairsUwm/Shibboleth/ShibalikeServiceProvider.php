@@ -3,8 +3,6 @@
 namespace StudentAffairsUwm\Shibboleth;
 
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Foundation\AliasLoader;
-use Illuminate\Support\Facades\Route;
 
 class ShibalikeServiceProvider extends ServiceProvider
 {
@@ -15,6 +13,8 @@ class ShibalikeServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+
+        $this->loadViewsFrom(__DIR__ . '/../../resources/views/shibalike', 'shibalike');
 
         $this->publishes([
             __DIR__ . '/../../resources/views/shibalike/' => resource_path('views/vendor/shibalike'),

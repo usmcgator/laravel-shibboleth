@@ -8,11 +8,11 @@ This package provides an easy way to implement Shibboleth Authentication for 10,
 
 Because this is a fork, you'll need to add the fork to your composer.json file. Add this entry to your repositories array:
 
-```json
+```php
     "repositories": [
         {
             "type": "vcs",
-            "url": https://github.com/usmcgator/laravel-shibboleth"
+            "url": "https://github.com/usmcgator/laravel-shibboleth"
         }
     ],
 ```
@@ -31,6 +31,17 @@ You can also publish the views for the shibalike emulated IdP login:
 
     php artisan vendor:publish --provider="StudentAffairsUwm\Shibboleth\ShibalikeServiceProvider"
 
+If you you would like to use the emulated IdP via shibalike, then you will need to manually register it on any version - this is not automatically loaded. Add something like this to your app/Providers/AppServiceProvider.php file:
+
+```php
+    public function register(): void
+    {
+        if ($this->app->environment(['local', 'development'])) {
+            $this->app->register(ShibalikeServiceProvider::class);
+        }
+    }
+```
+
 Change the driver to `shibboleth` in
 your `config/auth.php` file.
 
@@ -47,7 +58,7 @@ your `config/auth.php` file.
 
 The published `shibboleth.php` config file allows for a wide range of customization, check the defaults and set values as appropriate. For example, add the following to your .env
 ```env
-SHIB_AUTH_FIELD=eppn
+SHIB_AUTH_FIELD=email
 ```
 
 If you're leveraging the local-sp functionality, you'll need to provide a variety of information about your Shibboleth IdP. If you're leveraging the Apache shibboleth SP, you should only need to verify the Shibboleth attributes that you'll be using. 

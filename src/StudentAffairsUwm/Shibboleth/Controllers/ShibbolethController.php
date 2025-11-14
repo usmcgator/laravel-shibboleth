@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Facades\Redirect;
-use Illuminate\Support\Facades\Request;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\View;
 use Illuminate\Console\AppNamespaceDetectorTrait;
@@ -19,6 +19,7 @@ use StudentAffairsUwm\Shibboleth\ConfigurationBackwardsCompatabilityMapper;
 use OneLogin\Saml2\Auth as OneLogin_Saml2_Auth;
 use OneLogin\Saml2\Error as OneLogin_Saml2_Error;
 use OneLogin\Saml2\Utils;
+use Illuminate\Support\Str;
 
 class ShibbolethController extends Controller
 {
@@ -43,7 +44,7 @@ class ShibbolethController extends Controller
     /**
      * Constructor
      */
-    public function __construct(GenericUser $user = null)
+    public function __construct(?GenericUser $user = null)
     {
 
         if (config('shibboleth.emulate_idp') === true) {
@@ -82,14 +83,14 @@ class ShibbolethController extends Controller
      * Setup authentication based on returned server variables
      * from the IdP.
      */
-    public function idpAuthenticate()
+    public function idpAuthenticate(Request $request)
     {
         if (empty(config('shibboleth.user'))) {
             ConfigurationBackwardsCompatabilityMapper::map();
         }
 
         foreach (config('shibboleth.user') as $local => $server) {
-            $map[$local] = $this->getServerVariable($server);
+            $map[$local] = $this->getServerVariable($request, $server);
         }
         // dd('local: ' . $local . ' Server: ' .$server);
         if (empty($map[config('shibboleth.authfield')])) {
@@ -114,6 +115,9 @@ class ShibbolethController extends Controller
                 return abort(403, 'Unauthorized');
             }
             $user = new $userClass();
+            if (empty($user->password)) {
+                $user->password = bcrypt(Str::random(40));
+            }
             $user->{$authField} = $identifier;
         }
 
@@ -132,10 +136,14 @@ class ShibbolethController extends Controller
         return redirect()->intended($route);
     }
 
-    public function destroy()
+    public function destroy(Request $request)
     {
         Auth::logout();
-        Session::flush();
+        //  Session::flush();
+        // Invalidate session
+        $request->session()->flush();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
         if (config('shibboleth.emulate_idp') == true) {
             return Redirect::to(action('\\' . __CLASS__ . '@emulateLogout'));
@@ -147,37 +155,39 @@ class ShibbolethController extends Controller
     /**
      * Emulate a login via Shibalike
      */
-    public function emulateLogin()
+
+    public function emulateLogin(Request $request)
     {
-        $from = (Request::input('target') != null) ? Request::input('target') : $this->getServerVariable('HTTP_REFERER');
+        $from = $request->input('target') ?? $this->getServerVariable($request, 'HTTP_REFERER');
 
         $this->sp->makeAuthRequest($from);
         $this->sp->redirect();
     }
-
     /**
      * Emulate a logout via Shibalike
      */
-    public function emulateLogout()
+    public function emulateLogout(Request $request)
     {
         $this->sp->logout();
+        auth()->logout();
 
-        $referer = $this->getServerVariable('HTTP_REFERER');
+        $request->session()->flush();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
-        Auth::logout();
-        Session::flush();
+        return redirect('/emulated/login');
     }
 
     /**
      * Emulate the 'authentication' via Shibalike
      */
-    public function emulateIdp()
+    public function emulateIdp(Request $request)
     {
         $data = [];
 
-        if (Request::input('username') != null) {
-            $username = (Request::input('username') === Request::input('password')) ?
-                Request::input('username') : '';
+        if ($request->input('username') !== null) {
+            $username = ($request->input('username') === $request->input('password')) ?
+                $request->input('username') : '';
 
             $userAttrs = $this->idp->fetchAttrs($username);
 
@@ -220,33 +230,37 @@ class ShibbolethController extends Controller
      * using the emulated IdP or a real one, we use the
      * appropriate function.
      */
-    private function getServerVariable($variableName)
+
+    private function getServerVariable(Request $request, string $variableName): ?string
     {
-        if (config('shibboleth.emulate_idp') == true) {
-            return isset($_SERVER[$variableName]) ?
-                $_SERVER[$variableName] : null;
+        // Emulated IdP via Shibalike
+        if (config('shibboleth.emulate_idp') === true) {
+            return $_SERVER[$variableName] ?? null;
         }
-        if (config('shibboleth.sp_type') == "local_shib") {
-            if (Request::session("shibAttributes")) {
-                $deserialized = unserialize(Request::session()->get("shibAttributes"));
-                if (isset($deserialized[$variableName])) {
-                    if (is_array($deserialized[$variableName])) {
-                        if (count($deserialized[$variableName]) > 1) {
-                            return $deserialized[$variableName];
-                        }
-                        return $deserialized[$variableName][0];
-                    }
-                    return $deserialized[$variableName];
+
+        // Local Shibboleth SP with serialized session attributes
+        if (config('shibboleth.sp_type') === 'local_shib') {
+            $serialized = $request->session()->get('shibAttributes');
+
+            if ($serialized) {
+                $attributes = @unserialize($serialized);
+
+                if (is_array($attributes) && isset($attributes[$variableName])) {
+                    return is_array($attributes[$variableName])
+                        ? ($attributes[$variableName][0] ?? null)
+                        : $attributes[$variableName];
                 }
-                return null;
             }
+
+            return null;
         }
 
-        $variable = Request::server($variableName);
+        // Default: use Laravel's server() method
+        $value = $request->server($variableName);
 
-        return (!empty($variable)) ?
-            $variable :
-            Request::server('REDIRECT_' . $variableName);
+        return !empty($value)
+            ? $value
+            : $request->server('REDIRECT_' . $variableName);
     }
 
     // These are helpers to provide backwards compatibility with the apache only version of this library
