@@ -28,11 +28,6 @@ Publish the default configuration file and entitlement migrations:
 php artisan vendor:publish --provider="StudentAffairsUwm\Shibboleth\ShibbolethServiceProvider"
 ```
 
-You can also publish the views for the shibalike emulated IdP login:
-```php
-php artisan vendor:publish --provider="StudentAffairsUwm\Shibboleth\ShibalikeServiceProvider"
-```
-
 Change the driver to `shibboleth` in your `config/auth.php` file.
 
 ```php
@@ -44,7 +39,7 @@ Change the driver to `shibboleth` in your `config/auth.php` file.
 ],
 ```
 
-If you need to emulate Shibboleth for local development, you'll need to manually register it on any version of Laravel. Add something like this to your app/Providers/AppServiceProvider.php file:
+If you need to emulate Shibboleth for local development (using Shibalike), you'll need to manually register it on any version of Laravel. Add something like this to your app/Providers/AppServiceProvider.php file:
 
 ```php
 use StudentAffairsUwm\Shibboleth\ShibalikeServiceProvider;
@@ -55,6 +50,11 @@ public function register(): void
         $this->app->register(ShibalikeServiceProvider::class);
     }
 }
+```
+
+Once you register Shibalike, you'll need publish the view for the Shibalike emulated IdP login. Make sure to register Shibalike before attempting to publish the views:
+```php
+php artisan vendor:publish --provider="StudentAffairsUwm\Shibboleth\ShibalikeServiceProvider"
 ```
 
 ## Configuration ##
