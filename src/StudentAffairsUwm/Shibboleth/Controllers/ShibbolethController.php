@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\View;
@@ -49,12 +50,14 @@ class ShibbolethController extends Controller
 
         if (config('shibboleth.emulate_idp') === true) {
 
-            $this->config         = new \Shibalike\Config();
-            $this->config->idpUrl = '/emulated/idp';
+            $this->config = new \Shibalike\Config();
+
+            $this->config->idpUrl = route('emulateIdp', [], false);
 
             $stateManager = $this->getStateManager();
 
             $this->sp = new \Shibalike\SP($stateManager, $this->config);
+
             $this->sp->initLazySession();
 
             $this->idp = new \Shibalike\IdP($stateManager, $this->getAttrStore(), $this->config);
@@ -67,16 +70,37 @@ class ShibbolethController extends Controller
      * Create the session, send the user away to the IDP
      * for authentication.
      */
-    public function login()
+
+    public function login(): RedirectResponse
     {
+        // 1) Build the "target" as an absolute URL to the authenticate endpoint.
+        //    Using a named route guarantees the subdirectory prefix is included.
+        // $targetUrl = route('shibboleth-authenticate'); // e.g., https://host/apps/portal/shibboleth-authenticate
+
+        $targetUrl = route('shibboleth-authenticate', [], false); // "/phhp/people/shibboleth-authenticate"
+
+        // 2) If we’re emulating the IdP (Shibalike), redirect to the emulated login
+        //    and pass the target as a query param.
         if (config('shibboleth.emulate_idp') === true) {
-            return redirect()->action([self::class, 'emulateLogin'], [
-                'target' => action([self::class, 'idpAuthenticate'])
+            return Redirect::route('emulateLogin', [
+                'target' => $targetUrl,
             ]);
         }
-        return Redirect::to(
-            URL::to('/') . $this->getLoginURL() . '?target=' . action([self::class, 'idpAuthenticate'])
-        );
+
+        // 3) For a real IdP login (Apache SP / external), normalize the login URL.
+        //    getLoginURL() may return either a path or a full URL, so we normalize
+        //    to an absolute URL for robustness.
+        $loginUrl = $this->getLoginURL();
+
+        // If $loginUrl is a relative path (e.g., "/Shibboleth.sso/Login"), convert to absolute.
+        if (!Str::startsWith($loginUrl, ['http://', 'https://'])) {
+            // url($path) will prepend APP_URL (which can include the subdirectory).
+            // If $loginUrl already begins with "/", url() will handle it correctly.
+            $loginUrl = url($loginUrl);
+        }
+
+        // 4) Redirect to the IdP login with a properly encoded "target" parameter.
+        return Redirect::to($loginUrl . '?' . http_build_query(['target' => $targetUrl]));
     }
 
     /**
@@ -139,7 +163,6 @@ class ShibbolethController extends Controller
     public function destroy(Request $request)
     {
         Auth::logout();
-        //  Session::flush();
         // Invalidate session
         $request->session()->flush();
         $request->session()->invalidate();
@@ -175,7 +198,11 @@ class ShibbolethController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/emulated/login');
+        // $route = config('shibboleth.emulateLogin');
+        // return redirect()->intended($route);
+        return redirect()->route('emulateLogin');
+
+    //    return redirect('/emulated/login');
     }
 
     /**
@@ -193,7 +220,8 @@ class ShibbolethController extends Controller
 
             if ($userAttrs) {
                 $this->idp->markAsAuthenticated($username);
-                $this->idp->redirect("/shibboleth-authenticate");
+                $targetUrl = route('shibboleth-authenticate');
+                $this->idp->redirect($targetUrl);
             }
 
             $data['error'] = 'Incorrect username and/or password';
