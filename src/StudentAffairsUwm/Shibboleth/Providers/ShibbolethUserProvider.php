@@ -27,6 +27,16 @@ class ShibbolethUserProvider implements UserProviderInterface
     }
 
     /**
+     * Get the Eloquent user model class.
+     *
+     * @return string
+     */
+    public function getModel(): string
+    {
+        return $this->model;
+    }
+
+    /**
      * Retrieve a user by their unique identifier.
      *
      * @param  mixed $identifier
