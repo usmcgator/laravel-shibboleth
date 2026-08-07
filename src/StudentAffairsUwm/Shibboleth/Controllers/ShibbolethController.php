@@ -52,7 +52,7 @@ class ShibbolethController extends Controller
 
             $this->config = new \Shibalike\Config();
 
-            $this->config->idpUrl = route('emulateIdp', [], false);
+            $this->config->idpUrl = route('emulateIdp');
 
             $stateManager = $this->getStateManager();
 
@@ -77,7 +77,9 @@ class ShibbolethController extends Controller
         //    Using a named route guarantees the subdirectory prefix is included.
         // $targetUrl = route('shibboleth-authenticate'); // e.g., https://host/apps/portal/shibboleth-authenticate
 
-        $targetUrl = route('shibboleth-authenticate', [], false); // "/phhp/people/shibboleth-authenticate"
+        // Build an absolute URL to the authenticate endpoint.
+        // Using a named route guarantees the subdirectory prefix is included.
+        $targetUrl = route('shibboleth-authenticate'); // "/phhp/people/shibboleth-authenticate"
 
         // 2) If we’re emulating the IdP (Shibalike), redirect to the emulated login
         //    and pass the target as a query param.
@@ -169,7 +171,8 @@ class ShibbolethController extends Controller
         $request->session()->regenerateToken();
 
         if (config('shibboleth.emulate_idp') == true) {
-            return Redirect::to(action('\\' . __CLASS__ . '@emulateLogout'));
+            // return Redirect::to(action('\\' . __CLASS__ . '@emulateLogout'));
+            return redirect()->route('emulateLogout');
         }
 
         return Redirect::to(url('/') . $this->getLogoutURL());
@@ -367,7 +370,8 @@ class ShibbolethController extends Controller
 
         Request::session()->flash("shibAttributes", serialize(array_merge(["nameId" => $auth->getNameId()], $auth->getAttributes())));
 
-        return Redirect::action('\\' . __CLASS__ . '@idpAuthenticate');
+       // return Redirect::action('\\' . __CLASS__ . '@idpAuthenticate');
+        return redirect()->route('shibboleth-authenticate');
     }
 
     public function localSPMetadata()
