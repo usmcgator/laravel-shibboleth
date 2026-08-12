@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Console\AppNamespaceDetectorTrait;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use StudentAffairsUwm\Shibboleth\ConfigurationBackwardsCompatabilityMapper;
+use InvalidArgumentException;
 
 use OneLogin\Saml2\Auth as OneLogin_Saml2_Auth;
 use OneLogin\Saml2\Error as OneLogin_Saml2_Error;
@@ -52,7 +53,8 @@ class ShibbolethController extends Controller
 
             $this->config = new \Shibalike\Config();
 
-            $this->config->idpUrl = route('emulateIdp');
+            //  $this->config->idpUrl = route('emulateIdp', [], false);
+            $this->config->idpUrl = route('emulateIdp'); // 7 aug 2026
 
             $stateManager = $this->getStateManager();
 
@@ -77,9 +79,11 @@ class ShibbolethController extends Controller
         //    Using a named route guarantees the subdirectory prefix is included.
         // $targetUrl = route('shibboleth-authenticate'); // e.g., https://host/apps/portal/shibboleth-authenticate
 
+        //  $targetUrl = route('shibboleth-authenticate', [], false); // "/phhp/people/shibboleth-authenticate"
+
         // Build an absolute URL to the authenticate endpoint.
         // Using a named route guarantees the subdirectory prefix is included.
-        $targetUrl = route('shibboleth-authenticate'); // "/phhp/people/shibboleth-authenticate"
+        $targetUrl = route('shibboleth-authenticate'); // 7 aug
 
         // 2) If we’re emulating the IdP (Shibalike), redirect to the emulated login
         //    and pass the target as a query param.
@@ -98,7 +102,8 @@ class ShibbolethController extends Controller
         if (!Str::startsWith($loginUrl, ['http://', 'https://'])) {
             // url($path) will prepend APP_URL (which can include the subdirectory).
             // If $loginUrl already begins with "/", url() will handle it correctly.
-            $loginUrl = url($loginUrl);
+            //  $loginUrl = url($loginUrl); 11 aug 2026
+            $loginUrl = request()->getSchemeAndHttpHost() . $loginUrl;
         }
 
         // 4) Redirect to the IdP login with a properly encoded "target" parameter.
@@ -172,10 +177,21 @@ class ShibbolethController extends Controller
 
         if (config('shibboleth.emulate_idp') == true) {
             // return Redirect::to(action('\\' . __CLASS__ . '@emulateLogout'));
-            return redirect()->route('emulateLogout');
+            return redirect()->route('emulateLogout'); // 7 aug 2026
         }
 
-        return Redirect::to(url('/') . $this->getLogoutURL());
+        $logoutUrl = $this->getLogoutURL();
+
+        // If $loginUrl is a relative path (e.g., "/Shibboleth.sso/Login"), convert to absolute.
+        if (!Str::startsWith($logoutUrl, ['http://', 'https://'])) {
+            // url($path) will prepend APP_URL (which can include the subdirectory).
+            // If $loginUrl already begins with "/", url() will handle it correctly.
+            //  $loginUrl = url($loginUrl); 11 aug 2026
+            $logoutUrl = request()->getSchemeAndHttpHost() . $logoutUrl;
+        }
+
+        return Redirect::to(url('/') . $logoutUrl);
+        //return Redirect::to(url('/') . $this->getLogoutURL());
     }
 
     /**
@@ -204,8 +220,6 @@ class ShibbolethController extends Controller
         // $route = config('shibboleth.emulateLogin');
         // return redirect()->intended($route);
         return redirect()->route('emulateLogin');
-
-    //    return redirect('/emulated/login');
     }
 
     /**
@@ -370,8 +384,8 @@ class ShibbolethController extends Controller
 
         Request::session()->flash("shibAttributes", serialize(array_merge(["nameId" => $auth->getNameId()], $auth->getAttributes())));
 
-       // return Redirect::action('\\' . __CLASS__ . '@idpAuthenticate');
-        return redirect()->route('shibboleth-authenticate');
+        // return Redirect::action('\\' . __CLASS__ . '@idpAuthenticate');
+        return redirect()->route('shibboleth-authenticate'); // 7 aug 2026
     }
 
     public function localSPMetadata()
@@ -385,7 +399,6 @@ class ShibbolethController extends Controller
         if (empty($errors)) {
             return response($metadata, 200, ['Content-Type' => 'text/xml']);
         } else {
-
             throw new InvalidArgumentException(
                 'Invalid SP metadata: ' . implode(', ', $errors),
                 OneLogin_Saml2_Error::METADATA_SP_INVALID
